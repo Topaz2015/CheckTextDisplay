@@ -22,13 +22,6 @@ bool TextDisplay::begin(HardwareSerial &serial, uint8_t RX, uint8_t TX, Color bg
     return begin(serial, bg); // Just pass the reference directly
 }
 
-
-// bool TextDisplay::begin(SoftwareSerial &serial, uint8_t RX, uint8_t TX, Color bg) {
-//     serial.begin(9600);  // SoftwareSerial only needs baud rate
-//     // No "while (!serial)" needed for SoftwareSerial
-//     return begin(serial, bg);
-// }
-
 String setCommand(String cmd, int val) {
     String res = cmd + "=";
     res += String(val) + ";";
@@ -291,57 +284,6 @@ void TextDisplay::sendCommand(const String &cmd) {
         displaySerial->println();
     }    
 }
-// // Private implementation
-// void TextDisplay::sendCommand(const String &cmd) {
-//     bool res = false;
-//     String rcvd = "";
-//     int del = 10000, len = cmd.length();
-//     // if (displaySerial) {
-//     //     displaySerial->println(cmd);
-//     // }    
-//     if (displaySerial) {
-//         displaySerial->readString();
-//         while (rcvd.length() < len) {
-//             // displaySerial->println(cmd);
-//             for (int i=0; i<len; i++){
-//                 displaySerial->print(cmd[i]);
-//                 delayMicroseconds(10);
-//             }
-//             delay(10);
-//             if (displaySerial->available()){
-//                 char ch = displaySerial->read();
-//                 rcvd += ch;
-//                 if (ch == '\n') {
-//                     res = true;
-//                     break;
-//                 }
-//                 del--;
-//                 if (del <= 0) break;
-//                 delayMicroseconds(10);
-//             }
-//         }
-//     } 
-//     // while (displaySerial->available()) {
-//     //     char ch = displaySerial->read();
-//     //     rcvd += ch;
-//     //     if (ch == '\n') {
-//     //         res = true;
-//     //         break;
-//     //     }
-//     //     del--;
-//     //     if (del <= 0) break;
-//     //     delayMicroseconds(10);
-//     // }
-//     Serial.println();
-//     Serial.println("CMD SENT:"+cmd);
-//     Serial.println("CMD LEN:"+String(len));
-//     if (res == false) Serial.println("SORRY TIMED OUT");
-//     else {
-//         Serial.println("RES LEN:"+String(rcvd.length()));
-//         Serial.println("RES RCVD:"+rcvd);
-//     }    
-//     delay(100);
-// }
 
 void TextDisplay::clearGridArea(uint8_t startRow, uint8_t rowCount, uint8_t startCol, uint8_t colCount) {
     uint8_t endRow = min(startRow + rowCount, 16);
@@ -398,30 +340,6 @@ uint8_t TextDisplay::fontToCols(FontSize font) const {
     }
 }
 
-// String TextDisplay::colorToCode(Color color) const {
-//     // int code = 
-//     switch(color) {
-//         case Color::BLACK: return "BLK";
-//         case Color::WHITE: return "WHT";
-//         case Color::RED: return "RED";
-//         case Color::GREEN: return "GRN";
-//         case Color::BLUE: return "BLU";
-//         case Color::YELLOW: return "YLW";
-//         case Color::LIME: return "AQU";
-//         case Color::PURPLE: return "PUR";
-//         default: return "WHT";
-//     }
-// }
-
-// String TextDisplay::fontToCode(FontSize font) const {
-//     switch(font) {
-//         case FontSize::SMALL: return "S";
-//         case FontSize::MEDIUM: return "M";
-//         case FontSize::LARGE: return "L";
-//         default: return "S";
-//     }
-// }
-
 uint16_t TextDisplay::calculateYPosition(uint8_t logicalRow) {
     // First usable row starts at y=22, each logical row = 16px
     return 22 + (logicalRow * 16);
@@ -433,4 +351,5 @@ uint16_t TextDisplay::calculateXPosition(FontSize font, uint8_t logicalCol) {
         default : return 4 + (8 * logicalCol);
     }
     return 4 + (8 * logicalCol);
+
 }
