@@ -27,7 +27,7 @@ void loop() {
     display.print("Hello World!");
 }
 
-## API Initialization
+## API Docs
 cpp
 
 Initialization
@@ -38,7 +38,7 @@ Initialization
 
     reset() - Reset display to default state
 
-###Screen Management
+Screen Management
 
     clear() - Clear entire screen with current background
 
@@ -54,13 +54,13 @@ Initialization
 
     setBackgroundColor(bg) - Change screen background color
 
-###Notification Areas
+Notification Areas
 
     enableNotifications(top, bottom) - Show/hide top/bottom bars
 
     disableNotifications() - Hide both notification areas
 
-###Text Settings
+Text Settings
 
     setCursor(row, col) - Move cursor to position
 
@@ -70,13 +70,13 @@ Initialization
 
     setAlignment(pos) - Set text alignment (LEFT, CENTER, RIGHT, MENU)
 
-###Basic Printing
+Basic Printing
 
     print(text) - Print at current cursor position
 
     println(text) - Print and move to next line
 
-###Advanced Printing
+Advanced Printing
 
     printAt(row, col, text) - Print at specific position with current settings
 
@@ -86,7 +86,7 @@ Initialization
 
     printFootNote(text, alignment, fg, bg) - Print in bottom notification area
 
-###Utility
+Utility
 
     getMaxRows() - Returns 16 (total rows available)
 
@@ -96,17 +96,17 @@ Initialization
 
     getCurrentRow()/getCurrentCol() - Get current cursor position
 
-####Color Options:
+Color Options:
 
-RED, GREEN, BLUE, LIME, WHITE, BLACK, YELLOW, PURPLE, NO_COLOR
-####Font Sizes:
+    RED, GREEN, BLUE, LIME, WHITE, BLACK, YELLOW, PURPLE, NO_COLOR
+Font Sizes:
 
-SMALL (14px), MEDIUM (25px), LARGE (50px)
-####Text Alignment:
+    SMALL (14px), MEDIUM (25px), LARGE (50px)
+Text Alignment:
 
-LEFT, CENTER, RIGHT, MENU
+    LEFT, CENTER, RIGHT, MENU
 
-The class handles a 16-row display with top/bottom notification areas and supports mixed fonts and colors with automatic positioning.
+    The class handles a 16-row display with top/bottom notification areas and supports mixed fonts and colors with automatic positioning.
 
 ### Basic Operations
 cpp
