@@ -1,5 +1,5 @@
 # TextDisplay Library 
-## For use with the Check Digital Lightbox Lcd Display
+## For use with the Check Lcd Display aka The Digital Lightbox 
 
     Arduino library for interfacing with CheckTextDisplay via UART
 
