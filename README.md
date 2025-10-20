@@ -30,7 +30,7 @@ void loop() {
 ## API Initialization
 cpp
 
-###Initialization
+Initialization
 
     begin(Stream &serial, Color bg) - Start with any Stream (Serial, SoftwareSerial)
 
