@@ -1,4 +1,4 @@
-#include "CheckTextDisplay.h"
+#include "TextDisplay.h"
 
 bool TextDisplay::begin(Stream &serial) {
     displaySerial = &serial;
@@ -46,15 +46,15 @@ void TextDisplay::screenOff() {
     delay(100); // Allow display to reset
 }
 
+void TextDisplay::wifiOff() {
+    String cmd = setCommand("WIFI_OFF", 1);
+    sendCommand("[" + cmd + "]");
+    delay(100); // Allow display to reset
+}
+
 void TextDisplay::clear() {
     String cmd = setCommand("WALL_BG", static_cast<uint8_t>(currentScreenBg));
     sendCommand("[" + cmd + "]");
-    // Clear internal grid state
-    for (uint8_t row = 0; row < 16; row++) {
-        for (uint8_t col = 0; col < 50; col++) {
-            grid[col][row] = TextCell();
-        }
-    }
     currentRow = 0;
     currentCol = 0;
 }
@@ -63,51 +63,21 @@ void TextDisplay::clear(Color wallbg) {
     currentScreenBg = wallbg;
     String cmd = setCommand("WALL_BG", static_cast<uint8_t>(currentScreenBg));
     sendCommand("[" + cmd + "]");
-    // Clear internal grid state
-    for (uint8_t row = 0; row < 16; row++) {
-        for (uint8_t col = 0; col < 50; col++) {
-            grid[col][row] = TextCell();
-        }
-    }
     currentRow = 0;
     currentCol = 0;
 }
 
-void TextDisplay::clearArea(uint8_t startRow, uint8_t rowCount) {
-    if (startRow >= 16 || rowCount == 0) return;    
-    uint8_t endRow = min(startRow + rowCount, 16);
-    for (uint8_t row = startRow; row < endRow; row++) {
-        for (uint8_t col = 0; col < 50; col++) {
-            grid[col][row] = TextCell();
-        }
-    }    
-    // Send clear command for physical area
-    uint16_t y = calculateYPosition(startRow);
-    uint16_t height = rowCount * 16; // Each logical row = 16px
-    //send background color here
-    String cmd = setCommand("CLEAR", static_cast<uint8_t>(currentScreenBg));
-    cmd += setCommand("YPOS", y);
-    cmd += setCommand("PIX", height);
-    sendCommand("[" + cmd + "]");
-}
+// void TextDisplay::enableNotifications(bool top, bool bottom) {
+//     notificationsTop = top;
+//     notificationsBottom = bottom;
+//     String cmd = setCommand("W_TOP", (top)? 1: 0);
+//     cmd += setCommand("W_BTM", (bottom)? 1: 0);
+//     sendCommand("[" + cmd + "]");
+// }
 
-void TextDisplay::clearNotificationArea(NotificationArea area) {
-    // String cmd = area == NotificationArea::TOP ? "[CLRTOP]" : "[CLRBOT]";
-    String cmd = (area == NotificationArea::TOP)? setCommand("W_TOP", 0) : setCommand("W_BTM", 0);
-    sendCommand("[" + cmd + "]");
-}
-
-void TextDisplay::enableNotifications(bool top, bool bottom) {
-    notificationsTop = top;
-    notificationsBottom = bottom;
-    String cmd = setCommand("W_TOP", (top)? 1: 0);
-    cmd += setCommand("W_BTM", (bottom)? 1: 0);
-    sendCommand("[" + cmd + "]");
-}
-
-void TextDisplay::disableNotifications() {
-    enableNotifications(false, false);
-}
+// void TextDisplay::disableNotifications() {
+//     enableNotifications(false, false);
+// }
 
 void TextDisplay::setCursor(uint8_t row, uint8_t col) {
     if (row >= 16) return;
@@ -124,9 +94,12 @@ void TextDisplay::setTextColor(Color fg, Color bg) {
     currentBgColor = bg;
 }
 
-void TextDisplay::setScreenBackground(Color bg){
-    currentScreenBg = bg;
-    clear();
+bool  TextDisplay::showImage(const String &name) {
+    String file = "";
+    if (!name.indexOf(".") > -1) file = name.substring(0, name.indexOf("."));
+    file += ".bin";
+    sendCommand("[CMD_IMG=1]" + file);
+    return true;
 }
 
 bool TextDisplay::print(const String &text) {
@@ -152,10 +125,6 @@ bool TextDisplay::printAt(uint8_t row, uint8_t col, const String &text) {
     }        
     uint8_t rowsNeeded = fontToRows(currentFont);
     uint8_t colsAvailable = fontToCols(currentFont) - col;
-    // Check if target area is clear
-    if (!isAreaClear(row, rowsNeeded, col, min((uint8_t)text.length(), colsAvailable))) {
-        return false; // Area occupied, prevent overlap
-    }
     String cmds = "";
     cmds += setCommand("XPOS", calculateXPosition(currentFont, col));
     cmds += setCommand("YPOS", calculateYPosition(row));
@@ -163,9 +132,7 @@ bool TextDisplay::printAt(uint8_t row, uint8_t col, const String &text) {
     cmds += setCommand("CHAR_FG", static_cast<uint8_t>(currentFgColor));
     cmds += setCommand("CHAR_BG", static_cast<uint8_t>(currentBgColor));
     cmds += setCommand("ALIGN", static_cast<uint8_t>(currentAlign));
-    // String displayCmd = "[" + cmds + "]" + text;
-    sendCommand("[" + cmds + "]" + text);
-    markAreaOccupied(row, rowsNeeded, col, text.length(), currentFont);    
+    sendCommand("[" + cmds + "]" + text);   
     currentRow = row;
     currentCol = col + text.length();
     if (currentCol >= fontToCols(currentFont)) {
@@ -175,6 +142,43 @@ bool TextDisplay::printAt(uint8_t row, uint8_t col, const String &text) {
     return true;
 }
 
+
+void TextDisplay::clearSection(int startY, int height){
+    String cmds = "";
+    cmds += setCommand("YPOS", startY);
+    cmds += setCommand("HGT", height);
+    cmds += setCommand("CLR_SECT", static_cast<uint8_t>(currentScreenBg));
+    cmds = "[" + cmds + "]";
+    sendCommand(cmds);
+}
+
+bool TextDisplay::clearRow(int row) {
+    if (row >= 16) {
+        return false;
+    }
+    String cmds = "";
+    int startY = calculateYPosition(row);
+    clearSection(startY, 16);
+    currentRow = 0;
+    currentCol = 0;
+    return true;
+}
+
+bool TextDisplay::clearHead() {
+    String cmds = "";
+    clearSection(0, 22);
+    return true;
+}
+bool TextDisplay::clearFoot() {
+    String cmds = "";
+    clearSection(278, 22);
+    return true;
+}
+
+void TextDisplay::setBackgroundColor(Color bg){
+    currentScreenBg = bg;
+}
+
 bool TextDisplay::printAt(uint8_t row, uint8_t col, const String &text, 
                          FontSize font, Color fg, Color bg) {
     if (row >= 16 || col >= fontToCols(font)) {
@@ -182,10 +186,6 @@ bool TextDisplay::printAt(uint8_t row, uint8_t col, const String &text,
     }
     uint8_t rowsNeeded = fontToRows(font);
     uint8_t colsAvailable = fontToCols(font) - col;
-    // Check if target area is clear
-    if (!isAreaClear(row, rowsNeeded, col, min((uint8_t)text.length(), colsAvailable))) {
-        return false; // Area occupied, prevent overlap
-    }
     if (bg == Color::NO_COLOR) bg = currentScreenBg;
     if (fg == Color::NO_COLOR) fg = currentFgColor; //dont allow bg = fg
     setFontSize(font);
@@ -199,7 +199,6 @@ bool TextDisplay::printAt(uint8_t row, uint8_t col, const String &text,
     cmds += setCommand("ALIGN", static_cast<uint8_t>(currentAlign));
     cmds = "[" + cmds + "]" + text;
     sendCommand(cmds);
-    markAreaOccupied(row, rowsNeeded, col, text.length(), currentFont);    
     currentRow = row;
     currentCol = col + text.length();
     if (currentCol >= fontToCols(currentFont)) {
@@ -218,7 +217,7 @@ bool TextDisplay::printFootNote(const String &text, Align pos, Color fg, Color b
     String cmds = "";
     cmds += setCommand("FOOT_FG", static_cast<uint8_t>(fg));
     cmds += setCommand("FOOT_BG", static_cast<uint8_t>(bg));
-    cmds += setCommand("ALIGN", static_cast<uint8_t>(currentAlign));
+    cmds += setCommand("ALIGN", static_cast<uint8_t>(pos));
     cmds = "[" + cmds + "]" + text;
     sendCommand(cmds);    
     return true;
@@ -240,15 +239,14 @@ bool TextDisplay::printHeadNote(const String &text, Align pos, Color fg, Color b
 }
     
 
-void TextDisplay::setScroll(NotificationArea section, const String &text, bool enable) {
-    // if (row >= 16) return;    
-    uint16_t yPos = 0;
-    if (section == NotificationArea::BOTTOM) yPos = 300-22; 
-    String cmd = setCommand("SCROLL", (enable)? 1:0);
-    cmd += setCommand("ROW", yPos);
-    cmd = "[" + cmd + "]" + text;
-    sendCommand(cmd);
-}
+// void TextDisplay::setScroll(NotificationArea section, const String &text, bool enable) {
+//     uint16_t yPos = 0;
+//     if (section == NotificationArea::BOTTOM) yPos = 300-22; 
+//     String cmd = setCommand("SCROLL", (enable)? 1:0);
+//     cmd += setCommand("ROW", yPos);
+//     cmd = "[" + cmd + "]" + text;
+//     sendCommand(cmd);
+// }
 
 uint8_t TextDisplay::getMaxRows() const {
     return 16;
@@ -285,43 +283,6 @@ void TextDisplay::sendCommand(const String &cmd) {
     }    
 }
 
-void TextDisplay::clearGridArea(uint8_t startRow, uint8_t rowCount, uint8_t startCol, uint8_t colCount) {
-    uint8_t endRow = min(startRow + rowCount, 16);
-    uint8_t endCol = min(startCol + colCount, 50);
-    
-    for (uint8_t row = startRow; row < endRow; row++) {
-        for (uint8_t col = startCol; col < endCol; col++) {
-            grid[col][row] = TextCell();
-        }
-    }
-}
-
-bool TextDisplay::isAreaClear(uint8_t startRow, uint8_t rowCount, uint8_t startCol, uint8_t colCount) const {
-    uint8_t endRow = min(startRow + rowCount, 16);
-    uint8_t endCol = min(startCol + colCount, 50);
-    
-    for (uint8_t row = startRow; row < endRow; row++) {
-        for (uint8_t col = startCol; col < endCol; col++) {
-            if (grid[col][row].occupied) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-
-void TextDisplay::markAreaOccupied(uint8_t startRow, uint8_t rowCount, uint8_t startCol, uint8_t colCount, FontSize font) {
-    uint8_t endRow = min(startRow + rowCount, 16);
-    uint8_t endCol = min(startCol + colCount, 50);
-    
-    for (uint8_t row = startRow; row < endRow; row++) {
-        for (uint8_t col = startCol; col < endCol; col++) {
-            grid[col][row].occupied = true;
-            grid[col][row].font = font;
-        }
-    }
-}
-
 uint8_t TextDisplay::fontToRows(FontSize font) const {
     switch(font) {
         case FontSize::SMALL: return 1;
@@ -351,5 +312,4 @@ uint16_t TextDisplay::calculateXPosition(FontSize font, uint8_t logicalCol) {
         default : return 4 + (8 * logicalCol);
     }
     return 4 + (8 * logicalCol);
-
 }
